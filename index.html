@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PedalPal Help · FAQ Chatbot</title>
+<meta name="description" content="An NLP-powered FAQ chatbot built with vanilla JavaScript — TF-IDF, cosine similarity, and Porter-style stemming, no frameworks, no backend.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#11201A;
+    --pine:#1B4332;
+    --moss:#2D6A4F;
+    --paper:#F7F4EC;
+    --paper-dim:#EFEBDE;
+    --signal:#FFC93C;
+    --signal-dim:#FFE8A8;
+    --grey:#6B7280;
+    --line:#D8D2C2;
+    --white:#FFFEFB;
+    --radius:14px;
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-body);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+
+  /* ===== Top route bar ===== */
+  .route-bar{
+    background:var(--pine);
+    color:var(--paper);
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:7px 18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .route-bar .dot{color:var(--signal);}
+
+  /* ===== App shell ===== */
+  .app{
+    max-width:1180px;
+    margin:0 auto;
+    padding:28px 20px 60px;
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:24px;
+  }
+  @media (max-width:880px){
+    .app{grid-template-columns:1fr; padding:18px 14px 40px;}
+  }
+
+  /* ===== Sidebar / dock board ===== */
+  .board{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:24px 22px;
+    height:fit-content;
+    position:sticky;
+    top:20px;
+  }
+  @media (max-width:880px){ .board{position:static;} }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:4px;
+  }
+  .brand-mark{
+    width:34px;height:34px;
+    border-radius:50%;
+    background:var(--pine);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .brand-mark svg{width:18px;height:18px;}
+  .brand h1{
+    font-family:var(--font-display);
+    font-size:19px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:-.01em;
+  }
+  .brand-sub{
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--moss);
+    text-transform:uppercase;
+    letter-spacing:.07em;
+    margin:2px 0 18px 44px;
+  }
+  .board p.desc{
+    font-size:13.5px;
+    line-height:1.55;
+    color:#3A4A42;
+    margin:0 0 18px;
+  }
+
+  .stat-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+  }
+  .stat{
+    flex:1;
+    background:var(--paper-dim);
+    border-radius:10px;
+    padding:10px 0 9px;
+    text-align:center;
+  }
+  .stat .n{
+    font-family:var(--font-mono);
+    font-size:18px;
+    font-weight:500;
+    color:var(--pine);
+    display:block;
+  }
+  .stat .l{
+    font-size:10px;
+    color:var(--grey);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+  }
+
+  .board h2{
+    font-family:var(--font-display);
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--grey);
+    margin:0 0 10px;
+    border-top:1px dashed var(--line);
+    padding-top:16px;
+  }
+  .board h2:first-of-type{border-top:none;padding-top:0;}
+
+  .chip-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+    margin-bottom:18px;
+  }
+  .chip{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    color:var(--pine);
+    border-radius:999px;
+    padding:5px 11px;
+    cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .chip:hover{background:var(--signal-dim); border-color:var(--signal);}
+  .chip.active{
+    background:var(--pine);
+    color:var(--paper);
+    border-color:var(--pine);
+  }
+
+  .sample-list{list-style:none; margin:0 0 4px; padding:0;}
+  .sample-list li{margin-bottom:7px;}
+  .sample-btn{
+    width:100%;
+    text-align:left;
+    background:none;
+    border:none;
+    padding:8px 10px;
+    font-size:13px;
+    font-family:var(--font-body);
+    color:var(--ink);
+    border-radius:8px;
+    cursor:pointer;
+    line-height:1.4;
+  }
+  .sample-btn:hover{background:var(--paper-dim);}
+  .sample-btn::before{content:"→ "; color:var(--moss); font-weight:600;}
+
+  .reset-link{
+    display:inline-block;
+    margin-top:6px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--grey);
+    text-decoration:underline;
+    cursor:pointer;
+    background:none;border:none;padding:0;
+  }
+
+  /* ===== Chat panel ===== */
+  .panel{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    display:flex;
+    flex-direction:column;
+    height:680px;
+    overflow:hidden;
+  }
+  @media (max-width:880px){ .panel{height:75vh;} }
+
+  .panel-head{
+    padding:16px 22px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--paper-dim);
+  }
+  .panel-head .title{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:14.5px;
+  }
+  .live-dot{
+    display:inline-block;
+    width:7px;height:7px;
+    border-radius:50%;
+    background:var(--moss);
+    margin-right:7px;
+    box-shadow:0 0 0 0 rgba(45,106,79,.5);
+    animation:pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(45,106,79,.45);}
+    70%{box-shadow:0 0 0 6px rgba(45,106,79,0);}
+    100%{box-shadow:0 0 0 0 rgba(45,106,79,0);}
+  }
+  .panel-head .meta{
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--grey);
+  }
+
+  .messages{
+    flex:1;
+    overflow-y:auto;
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .msg{
+    max-width:78%;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .msg.user{align-self:flex-end; align-items:flex-end;}
+  .msg.bot{align-self:flex-start; align-items:flex-start;}
+
+  .bubble{
+    padding:11px 14px;
+    border-radius:14px;
+    font-size:14px;
+    line-height:1.5;
+  }
+  .msg.user .bubble{
+    background:var(--pine);
+    color:var(--paper);
+    border-bottom-right-radius:4px;
+  }
+  .msg.bot .bubble{
+    background:var(--paper-dim);
+    color:var(--ink);
+    border-bottom-left-radius:4px;
+  }
+  .msg.bot .bubble.fallback{
+    background:#FBEFE2;
+    border:1px dashed #E4B98A;
+  }
+
+  .signal-row{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--grey);
+    padding-left:2px;
+  }
+  .signal-bars{display:flex; gap:2px; align-items:flex-end;}
+  .signal-bars span{
+    width:4px;
+    background:var(--line);
+    border-radius:1px;
+    display:block;
+  }
+  .signal-bars span:nth-child(1){height:5px;}
+  .signal-bars span:nth-child(2){height:8px;}
+  .signal-bars span:nth-child(3){height:11px;}
+  .signal-bars span:nth-child(4){height:14px;}
+  .signal-bars span.on{background:var(--moss);}
+  .signal-bars span.low.on{background:#D08A2D;}
+
+  .typing .bubble{display:flex; gap:4px; align-items:center; padding:13px 16px;}
+  .typing .dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--grey); opacity:.5;
+    animation:blink 1.1s infinite;
+  }
+  .typing .dot:nth-child(2){animation-delay:.15s;}
+  .typing .dot:nth-child(3){animation-delay:.3s;}
+  @keyframes blink{0%,80%,100%{opacity:.25;} 40%{opacity:.9;}}
+
+  .composer{
+    border-top:1px solid var(--line);
+    padding:14px 16px;
+    display:flex;
+    gap:10px;
+    background:var(--white);
+  }
+  .composer input{
+    flex:1;
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:11px 16px;
+    font-size:14px;
+    font-family:var(--font-body);
+    background:var(--paper);
+    color:var(--ink);
+    outline:none;
+  }
+  .composer input:focus{border-color:var(--moss);}
+  .composer button{
+    background:var(--signal);
+    border:none;
+    border-radius:999px;
+    width:42px;height:42px;
+    flex-shrink:0;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .12s;
+  }
+  .composer button:hover{transform:scale(1.05);}
+  .composer button svg{width:17px;height:17px;}
+
+  footer.credit{
+    text-align:center;
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--grey);
+    margin-top:18px;
+  }
+  footer.credit a{text-decoration:underline;}
+
+  /* scrollbar */
+  .messages::-webkit-scrollbar{width:7px;}
+  .messages::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div class="route-bar">
+  <span>PEDALPAL <span class="dot">•</span> HELP LINE 02</span>
+  <span id="clock"></span>
+</div>
+
+<div class="app">
+
+  <!-- ===== Sidebar ===== -->
+  <aside class="board">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F7F4EC" stroke-width="2"><circle cx="6" cy="17" r="3.2"/><circle cx="18" cy="17" r="3.2"/><path d="M6 17l4-9h4l4 9M10 8h5"/></svg>
+      </div>
+      <h1>PedalPal Help</h1>
+    </div>
+    <div class="brand-sub">FAQ Assistant · v1</div>
+    <p class="desc">Ask anything about renting a bike, your account, or your bill. This bot matches your question against a small FAQ set using TF&#8209;IDF and cosine similarity — entirely in the browser.</p>
+
+    <div class="stat-row">
+      <div class="stat"><span class="n" id="faqCount">0</span><span class="l">FAQs</span></div>
+      <div class="stat"><span class="n" id="catCount">0</span><span class="l">Topics</span></div>
+      <div class="stat"><span class="n">0ms</span><span class="l">Server calls</span></div>
+    </div>
+
+    <h2>Browse by topic</h2>
+    <div class="chip-row" id="chipRow"></div>
+
+    <h2>Try asking</h2>
+    <ul class="sample-list" id="sampleList"></ul>
+    <button class="reset-link" id="resetBtn">Reset conversation</button>
+  </aside>
+
+  <!-- ===== Chat panel ===== -->
+  <main class="panel">
+    <div class="panel-head">
+      <div class="title"><span class="live-dot"></span>Dock Assistant</div>
+      <div class="meta" id="modelMeta">tf-idf · cosine · stemmed</div>
+    </div>
+    <div class="messages" id="messages"></div>
+    <form class="composer" id="composer">
+      <input type="text" id="userInput" placeholder="Ask about bikes, billing, helmets…" autocomplete="off">
+      <button type="submit" aria-label="Send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#11201A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </form>
+  </main>
+
+</div>
+
+<footer class="credit">Built with vanilla JS · no backend, no API keys · fork it on <a href="#" id="ghLink">GitHub</a></footer>
+
+<script>
+/* =========================================================================
+   1. FAQ DATA
+   Swap this array out for your own product/topic — that's the only thing
+   you need to change to repurpose this whole app.
+   ========================================================================= */
+const FAQS = [
+  { cat: "Account", q: "How do I create a PedalPal account?", a: "Download the app, tap Sign Up, and verify your phone number. You'll add a payment method before your first ride." },
+  { cat: "Account", q: "How do I delete my account?", a: "Go to Settings → Account → Delete Account. This permanently removes your ride history and saved payment methods after any outstanding balance is cleared." },
+  { cat: "Account", q: "Can I use PedalPal without the app?", a: "Most stations let you tap a contactless card directly on the dock, but you'll get cheaper rates and ride history through the app." },
+  { cat: "Account", q: "How do I change my email or phone number?", a: "Open Settings → Profile, tap the field you want to update, and confirm the change with a one-time code." },
+  { cat: "Riding", q: "How do I unlock a bike?", a: "Scan the QR code on the bike or dock with the app, or enter the bike's 5-digit code manually. The lock releases within a few seconds." },
+  { cat: "Riding", q: "What do I do if a bike seems broken?", a: "Don't ride it. Tap 'Report an issue' in the app using the bike's ID number, then choose another bike at the same dock." },
+  { cat: "Riding", q: "Can I reserve a bike in advance?", a: "Yes, you can hold a bike for up to 10 minutes from the map view before it's released back to the dock." },
+  { cat: "Riding", q: "Is there a time limit per ride?", a: "Single rides are capped at 45 minutes on the standard plan. Going over adds an overtime fee, shown before you confirm." },
+  { cat: "Billing", q: "How much does a ride cost?", a: "$1 to unlock plus $0.15 per minute on pay-as-you-go. Monthly members get unlimited 45-minute rides for a flat fee." },
+  { cat: "Billing", q: "How do I cancel my membership?", a: "Settings → Membership → Cancel Plan. Your membership stays active until the end of the current billing cycle." },
+  { cat: "Billing", q: "Why was I charged extra after my ride?", a: "Extra charges usually mean the ride ran past the time limit, ended outside a valid dock zone, or the bike wasn't locked properly." },
+  { cat: "Billing", q: "Do you offer refunds?", a: "Refunds are issued for app errors or bike malfunctions. Submit a request from Ride History within 7 days of the charge." },
+  { cat: "Billing", q: "Are there student or low-income discounts?", a: "Yes, verified students and Reduced Fare members get 30% off monthly plans. Apply under Settings → Discounts." },
+  { cat: "Safety", q: "Do I need a helmet to ride?", a: "Helmets aren't required by the app but are strongly recommended. Some dock stations have a free helmet vending box." },
+  { cat: "Safety", q: "What age do I need to be to ride?", a: "Riders must be 16 or older with a verified account. Riders 16-17 need a guardian's consent added to their profile." },
+  { cat: "Safety", q: "Is it safe to ride at night?", a: "Every bike has front and rear LED lights that turn on automatically once you unlock it. Stick to lit routes when possible." },
+  { cat: "Parking", q: "Where can I leave the bike at the end of my ride?", a: "Return it to any PedalPal dock with an open slot. Some zones allow free-floating parking — check the green zones on the map." },
+  { cat: "Parking", q: "What happens if all docks at a station are full?", a: "The app gives you 5 extra minutes free to find another dock nearby, and shows the next closest station with space." },
+  { cat: "Parking", q: "Can I leave the bike somewhere that isn't a dock?", a: "Only inside marked free-floating zones shown in green on the map. Parking outside those areas adds a relocation fee." },
+  { cat: "Troubleshooting", q: "The app won't scan the QR code, what should I do?", a: "Clean the camera lens and make sure location and camera permissions are enabled, or enter the bike's code manually instead." },
+  { cat: "Troubleshooting", q: "My ride didn't end after I docked the bike", a: "Wait 60 seconds — the dock confirmation can lag. If the ride is still open after that, tap 'End Ride Manually' and attach a photo of the docked bike." },
+  { cat: "Troubleshooting", q: "I was charged but the bike never unlocked", a: "This is usually refunded automatically within 24 hours. If not, report it from Ride History and we'll reverse the charge." },
+  { cat: "Troubleshooting", q: "How do I contact a real person?", a: "Tap Help → Contact Support in the app, or email riders@pedalpal.example — replies usually land within one business day." }
+];
+
+/* =========================================================================
+   2. NLP PIPELINE — tokenizing, stopword removal, lightweight stemming
+   ========================================================================= */
+const STOPWORDS = new Set(("a an the is are was were be been being do does did "+
+  "have has had i you he she it we they my your his her its our their this that "+
+  "these those to of in on at for with about as by from up down out so if then "+
+  "than too very can could will would should shall may might must not no nor "+
+  "and or but if into over under again further once here there when where why how "+
+  "all any both each few more most other some such only own same just don now").split(" "));
+
+// Lightweight Porter-style stemmer: strips common English suffixes in a fixed
+// priority order. Not the full Porter algorithm's measure-based rules, but
+// covers the cases that matter for short FAQ-style sentences.
+function stem(word) {
+  let w = word.toLowerCase();
+  if (w.length < 4) return w;
+  const rules = [
+    [/(ational)$/, "ate"], [/(tional)$/, "tion"],
+    [/(alize)$/, "al"],    [/(icate)$/, "ic"],
+    [/(iciti)$/, "ic"],    [/(ization)$/, "ize"],
+    [/(ousness)$/, "ous"], [/(iveness)$/, "ive"],
+    [/(fulness)$/, "ful"], [/(ization)$/, "ize"],
+    [/(ies)$/, "y"],       [/(ing)$/, ""],
+    [/(edly)$/, ""],       [/(ed)$/, ""],
+    [/(ization)$/, "ize"],[/(ational)$/, "ate"],
+    [/(sses)$/, "ss"],     [/(es)$/, ""],
+    [/(ment)$/, ""],       [/(tion)$/, "t"],
+    [/(ness)$/, ""],       [/(ly)$/, ""],
+    [/(s)$/, ""]
+  ];
+  for (const [pattern, repl] of rules) {
+    if (pattern.test(w) && w.length - w.replace(pattern, "").length >= 1) {
+      const stemmed = w.replace(pattern, repl);
+      if (stemmed.length >= 2) return stemmed;
+    }
+  }
+  return w;
+}
+
+function tokenize(text) {
+  const raw = text.toLowerCase()
+    .replace(/[^a-z0-9\s']/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  return raw
+    .filter(t => !STOPWORDS.has(t) && t.length > 1)
+    .map(stem);
+}
+
+/* =========================================================================
+   3. TF-IDF VECTOR SPACE + COSINE SIMILARITY
+   ========================================================================= */
+const corpusTokens = FAQS.map(f => tokenize(f.q + " " + f.a));
+const vocab = Array.from(new Set(corpusTokens.flat()));
+const vocabIndex = new Map(vocab.map((t, i) => [t, i]));
+
+function termFreq(tokens) {
+  const tf = new Array(vocab.length).fill(0);
+  tokens.forEach(t => {
+    const i = vocabIndex.get(t);
+    if (i !== undefined) tf[i] += 1;
+  });
+  const max = Math.max(1, ...tf);
+  return tf.map(v => v / max); // normalized TF
+}
+
+const idf = vocab.map((term, i) => {
+  const docsWithTerm = corpusTokens.filter(toks => toks.includes(term)).length;
+  return Math.log((1 + corpusTokens.length) / (1 + docsWithTerm)) + 1;
+});
+
+function tfidfVector(tokens) {
+  const tf = termFreq(tokens);
+  return tf.map((v, i) => v * idf[i]);
+}
+
+const faqVectors = corpusTokens.map(tokens => tfidfVector(tokens));
+
+function cosineSim(a, b) {
+  let dot = 0, magA = 0, magB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    magA += a[i] * a[i];
+    magB += b[i] * b[i];
+  }
+  if (magA === 0 || magB === 0) return 0;
+  return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+}
+
+function bestMatch(query) {
+  const qTokens = tokenize(query);
+  if (qTokens.length === 0) return { score: 0, faq: null };
+  const qVec = tfidfVector(qTokens);
+  let best = { score: -1, faq: null };
+  faqVectors.forEach((vec, i) => {
+    const score = cosineSim(qVec, vec);
+    if (score > best.score) best = { score, faq: FAQS[i] };
+  });
+  return best;
+}
+
+/* =========================================================================
+   4. CHAT UI WIRING
+   ========================================================================= */
+const messagesEl = document.getElementById("messages");
+const inputEl = document.getElementById("userInput");
+const formEl = document.getElementById("composer");
+const chipRow = document.getElementById("chipRow");
+const sampleList = document.getElementById("sampleList");
+
+document.getElementById("faqCount").textContent = FAQS.length;
+const categories = Array.from(new Set(FAQS.map(f => f.cat)));
+document.getElementById("catCount").textContent = categories.length;
+
+let activeCat = null;
+
+function renderChips() {
+  chipRow.innerHTML = "";
+  ["All", ...categories].forEach(cat => {
+    const chip = document.createElement("button");
+    chip.className = "chip" + ((cat === "All" && !activeCat) || cat === activeCat ? " active" : "");
+    chip.textContent = cat;
+    chip.onclick = () => {
+      activeCat = cat === "All" ? null : cat;
+      renderChips();
+      renderSamples();
+    };
+    chipRow.appendChild(chip);
+  });
+}
+
+function renderSamples() {
+  const pool = FAQS.filter(f => !activeCat || f.cat === activeCat);
+  const picks = pool.slice(0, 5);
+  sampleList.innerHTML = "";
+  picks.forEach(f => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.className = "sample-btn";
+    btn.textContent = f.q;
+    btn.onclick = () => { inputEl.value = f.q; formEl.requestSubmit(); };
+    li.appendChild(btn);
+    sampleList.appendChild(li);
+  });
+}
+
+function addMessage(role, text, opts = {}) {
+  const wrap = document.createElement("div");
+  wrap.className = "msg " + role;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble" + (opts.fallback ? " fallback" : "");
+  bubble.textContent = text;
+  wrap.appendChild(bubble);
+
+  if (role === "bot" && typeof opts.score === "number") {
+    const row = document.createElement("div");
+    row.className = "signal-row";
+    const bars = document.createElement("div");
+    bars.className = "signal-bars";
+    const level = opts.score > 0.6 ? 4 : opts.score > 0.4 ? 3 : opts.score > 0.2 ? 2 : opts.score > 0 ? 1 : 0;
+    for (let i = 1; i <= 4; i++) {
+      const bar = document.createElement("span");
+      if (i <= level) {
+        bar.classList.add("on");
+        if (level <= 1) bar.classList.add("low");
+      }
+      bars.appendChild(bar);
+    }
+    row.appendChild(bars);
+    const label = document.createElement("span");
+    label.textContent = "match " + Math.round(opts.score * 100) + "%" + (opts.cat ? " · " + opts.cat : "");
+    row.appendChild(label);
+    wrap.appendChild(row);
+  }
+
+  messagesEl.appendChild(wrap);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function showTyping() {
+  const wrap = document.createElement("div");
+  wrap.className = "msg bot typing";
+  wrap.id = "typingIndicator";
+  wrap.innerHTML = `<div class="bubble"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+  messagesEl.appendChild(wrap);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+function hideTyping() {
+  const t = document.getElementById("typingIndicator");
+  if (t) t.remove();
+}
+
+const THRESHOLD = 0.12;
+
+function handleQuery(text) {
+  addMessage("user", text);
+  showTyping();
+  setTimeout(() => {
+    hideTyping();
+    const { score, faq } = bestMatch(text);
+    if (!faq || score < THRESHOLD) {
+      addMessage("bot",
+        "I couldn't find a confident match for that in the FAQ set. Try rephrasing, or tap one of the topics on the left.",
+        { score: score || 0, fallback: true });
+    } else {
+      addMessage("bot", faq.a, { score, cat: faq.cat });
+    }
+  }, 420 + Math.random() * 300);
+}
+
+formEl.addEventListener("submit", e => {
+  e.preventDefault();
+  const text = inputEl.value.trim();
+  if (!text) return;
+  inputEl.value = "";
+  handleQuery(text);
+});
+
+document.getElementById("resetBtn").onclick = () => {
+  messagesEl.innerHTML = "";
+  addMessage("bot", "Hey, I'm the PedalPal dock assistant. Ask me about rides, billing, helmets, or parking — I'll match it against our FAQ set and show how confident the match is.");
+};
+
+function tickClock() {
+  document.getElementById("clock").textContent =
+    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+tickClock();
+setInterval(tickClock, 1000 * 30);
+
+document.getElementById("ghLink").addEventListener("click", e => e.preventDefault());
+
+/* init */
+renderChips();
+renderSamples();
+addMessage("bot", "Hey, I'm the PedalPal dock assistant. Ask me about rides, billing, helmets, or parking — I'll match it against our FAQ set and show how confident the match is.");
+</script>
+</body>
+</html>
